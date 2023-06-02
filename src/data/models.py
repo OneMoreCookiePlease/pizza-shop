@@ -1,3 +1,8 @@
+# It is absolutely a bad idea to put all the models in 1 file,
+# but doing otherwise is very error-prone from SQLMODEL side.
+# Namely, the actual need for circular import if you want to do many-to-many tables.
+
+
 from datetime import datetime
 from typing import List, Optional
 
