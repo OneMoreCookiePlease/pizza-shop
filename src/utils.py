@@ -16,3 +16,4 @@ class Tags(Enum):
     orders = "orders"
     couriers = "couriers"
     utils = "utils"
+    security = "security"
