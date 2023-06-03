@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi import APIRouter, Depends, HTTPException, Security, status
+from fastapi.security import (OAuth2PasswordBearer, OAuth2PasswordRequestForm,
+                              SecurityScopes)
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
@@ -16,7 +17,13 @@ SECRET_KEY = "8c91ab268d357cdfb6a2a61d32b8fde6f8ebb0322099ffe30fe411a7f978bd9a"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="token",
+    scopes={
+        "user": "Basic user permissions.",
+        "admin": "Advanced permissions.",
+    },
+)
 
 
 class Token(BaseModel):
@@ -26,6 +33,7 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: str | None = None
+    scopes: list[str] = []
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -65,7 +73,13 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     return encoded_jwt
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+async def get_current_user(
+    security_scopes: SecurityScopes, token: Annotated[str, Depends(oauth2_scheme)]
+):
+    if security_scopes.scopes:
+        authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
+    else:
+        authenticate_value = "Bearer"
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -76,17 +90,25 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-        token_data = TokenData(username=username)
+        token_scopes = payload.get("scopes", [])
+        token_data = TokenData(scopes=token_scopes, username=username)
     except JWTError:
         raise credentials_exception
     user = get_user(username=token_data.username)
     if user is None:
         raise credentials_exception
+    for scope in security_scopes.scopes:
+        if scope not in token_data.scopes:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not enough permissions",
+                headers={"WWW-Authenticate": authenticate_value},
+            )
     return user
 
 
 async def get_current_active_user(
-    current_user: Annotated[User, Depends(get_current_user)]
+    current_user: Annotated[User, Security(get_current_user, scopes=["user"])]
 ):
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
@@ -109,7 +131,8 @@ async def login_for_access_token(
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.name}, expires_delta=access_token_expires
+        data={"sub": user.name, "scopes": form_data.scopes},
+        expires_delta=access_token_expires,
     )
     return {"access_token": access_token, "token_type": "bearer"}
 

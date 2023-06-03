@@ -1,11 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import APIRouter, Depends, Security
 from sqlmodel import Session, select
 
 from src.data.models import User
-from src.security import oauth2_scheme
+from src.security import get_current_active_user, oauth2_scheme
 from src.utils import Tags, get_session
 
 router = APIRouter()
@@ -19,3 +18,10 @@ async def get_users(
     statement = select(User)
     result = session.exec(statement).all()
     return result
+
+
+@router.get("/users/me/", tags=[Tags.users])
+async def get_me(
+    current_user: Annotated[User, Security(get_current_active_user, scopes=["user"])]
+) -> User:
+    return current_user

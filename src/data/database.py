@@ -1,7 +1,6 @@
-from sqlalchemy.orm import relationship
 from sqlmodel import Session, SQLModel, create_engine
 
-from src.data.models import Courier, Food, Order, User
+from src.data.models import Courier, Food, User
 
 sqlite_file_name = "database.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
