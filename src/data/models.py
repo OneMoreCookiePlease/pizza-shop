@@ -15,6 +15,7 @@ class User(SQLModel, table=True):
     name: str
     address: Optional[str] = None
     password_hash: str = Field(default=None, unique=True)
+    disabled: bool | None = Field(default=None)
 
     orders: list["Order"] = Relationship(back_populates="user")
 
