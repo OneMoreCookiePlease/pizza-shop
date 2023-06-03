@@ -4,5 +4,5 @@ This includes backend, frontend, use of 3-party API(payment system etc).
 
 TODO's:
 - <strike>User auth</strike>
-- User authorization
+- <strike>User authorization</strike>
 - More endpoints
