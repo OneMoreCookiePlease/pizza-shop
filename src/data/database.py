@@ -1,4 +1,4 @@
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine, select
 
 from src.data.models import Courier, Food, User
 
@@ -42,3 +42,9 @@ def create_mock_courier():
         courier = Courier(name="billy")
         session.add(courier)
         session.commit()
+
+
+def get_food_by_id(food_id: int):
+    with Session(engine) as session:
+        statement = select(Food).where(Food.id == food_id)
+        return session.exec(statement).first()
