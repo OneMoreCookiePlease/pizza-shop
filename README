@@ -3,6 +3,6 @@ The goal is to implement all the basic functionality of an online commerce websi
 This includes backend, frontend, use of 3-party API(payment system etc).
 
 TODO's:
-- User auth
+- ~~User auth~~
 - User authorization
 - More endpoints
